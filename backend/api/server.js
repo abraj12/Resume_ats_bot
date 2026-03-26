@@ -1,3 +1,5 @@
+const fs = require("fs");
+const fsPromises = require("fs/promises");
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
@@ -11,6 +13,7 @@ const {
   persistJobDescription,
   persistOptimizedResume
 } = require("../services/storageService");
+const { BASE_URL, STORAGE_DIR } = require("../utils/env");
 const logger = require("../utils/logger");
 
 const upload = multer({
@@ -20,20 +23,51 @@ const upload = multer({
   }
 });
 
+const downloadDirectory = path.resolve(STORAGE_DIR, "downloads");
+
 function createApiServer() {
   const app = express();
 
   app.use(
     cors({
-      origin: "*",
-      methods: ["GET", "POST", "PUT", "DELETE"],
-      allowedHeaders: ["Content-Type"]
+      origin(origin, callback) {
+        const allowedOrigins = [
+          "http://localhost:5173",
+          "https://resume-ats-bot.vercel.app"
+        ];
+
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+
+        const isVercelPreview = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin);
+
+        if (allowedOrigins.includes(origin) || isVercelPreview) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error(`Origin not allowed by CORS: ${origin}`));
+      },
+      methods: ["GET", "POST"],
+      credentials: true
     })
   );
   app.use(express.json({ limit: "2mb" }));
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
+  });
+
+  app.get("/download/:filename", (req, res) => {
+    const filePath = path.join(downloadDirectory, req.params.filename);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    return res.download(filePath);
   });
 
   app.post("/analyze", upload.single("file"), async (req, res) => {
@@ -64,6 +98,7 @@ function createApiServer() {
 
       const userId = `web-${Date.now()}`;
       await ensureUserDirectory(userId);
+      await fsPromises.mkdir(downloadDirectory, { recursive: true });
 
       const resumeText = await parseResumeBuffer(file.buffer, extension);
       const analysis = await analyzeResumeAgainstJob({
@@ -80,7 +115,25 @@ function createApiServer() {
       await persistAnalysis(userId, { analysis, jobDescription, resumeText });
       await persistOptimizedResume(userId, { optimizedResume });
 
+      const generatedFiles = await exportResumeFiles({
+        userId,
+        templateId: "professional",
+        resumeData: optimizedResume
+      });
+
+      const publicPdfName = `${userId}-professional-resume.pdf`;
+      await fsPromises.copyFile(generatedFiles.pdfPath, path.join(downloadDirectory, publicPdfName));
+
+      let publicJpgName = null;
+      if (generatedFiles.jpgPath) {
+        publicJpgName = `${userId}-professional-resume.jpg`;
+        await fsPromises.copyFile(generatedFiles.jpgPath, path.join(downloadDirectory, publicJpgName));
+      }
+
       return res.json({
+        message: "Analysis complete",
+        downloadUrl: `${BASE_URL}/download/${publicPdfName}`,
+        downloadImageUrl: publicJpgName ? `${BASE_URL}/download/${publicJpgName}` : null,
         success: true,
         data: {
           ...analysis,
@@ -105,7 +158,7 @@ function createApiServer() {
 
     logger.info("POST /download request received", { format, templateId, userId });
 
-    if (![["pdf", "image"]].flat().includes(format)) {
+    if (!["pdf", "image"].includes(format)) {
       return res.status(400).json({ error: "Unsupported download format." });
     }
 
@@ -139,6 +192,11 @@ function createApiServer() {
     if (error instanceof multer.MulterError) {
       logger.error("Upload middleware failed", error);
       return res.status(400).json({ error: error.message });
+    }
+
+    if (error?.message?.startsWith("Origin not allowed by CORS")) {
+      logger.error("CORS rejected request", error);
+      return res.status(403).json({ error: error.message });
     }
 
     logger.error("Unhandled API error", error);

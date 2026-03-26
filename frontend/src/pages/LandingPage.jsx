@@ -26,19 +26,23 @@ function LandingPage({ onTryNow }) {
     }
   ];
 
+  const openTelegram = () => {
+    window.open("https://t.me/findperfectjobforu_bot", "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="space-y-24 pb-24 pt-10 sm:pt-14">
       <section className="section-shell">
         <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="mb-4 inline-flex rounded-full border border-sky-400/20 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-600 dark:text-sky-300">
+            <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="mb-4 inline-flex rounded-full border border-sky-400/20 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300">
               AI-powered resume optimization
             </motion.p>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-balance font-display text-5xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-6xl"
+              className="text-balance font-display text-5xl font-bold tracking-tight text-white sm:text-6xl"
             >
               AI Resume Analyzer
             </motion.h1>
@@ -46,19 +50,19 @@ function LandingPage({ onTryNow }) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="mt-6 max-w-xl text-lg leading-8 text-slate-600 dark:text-slate-300"
+              className="mt-6 max-w-xl text-lg leading-8 text-gray-300"
             >
               Boost your ATS score instantly with a startup-polished workflow for analysis, rewriting, templates, and downloads.
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-10 flex flex-col gap-4 sm:flex-row">
               <button
                 onClick={onTryNow}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-cyan-400 to-indigo-500 px-6 py-4 font-semibold text-white shadow-glow transition hover:-translate-y-1"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 font-semibold text-white transition hover:bg-blue-600"
               >
                 Try Now
                 <ArrowRight className="h-5 w-5" />
               </button>
-              <a href="#demo" className="inline-flex items-center justify-center rounded-2xl border border-slate-300/70 bg-white/70 px-6 py-4 font-semibold text-slate-900 transition hover:-translate-y-1 dark:border-slate-700 dark:bg-slate-950/50 dark:text-white">
+              <a href="#demo" className="inline-flex items-center justify-center rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 font-semibold text-white transition hover:bg-slate-700">
                 Explore Demo
               </a>
             </motion.div>
@@ -67,6 +71,21 @@ function LandingPage({ onTryNow }) {
           <motion.div initial={{ opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="animate-float">
             <DemoPreview />
           </motion.div>
+        </div>
+      </section>
+
+      <section className="section-shell">
+        <div className="bg-gray-800 p-6 rounded-xl shadow-lg mt-6 text-center">
+          <h2 className="text-xl font-semibold mb-2 text-white">Use Telegram Bot</h2>
+          <p className="text-gray-400 mb-4">
+            You can also optimize your resume using our Telegram bot
+          </p>
+          <button
+            onClick={openTelegram}
+            className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg text-white font-semibold"
+          >
+            Open Telegram Bot
+          </button>
         </div>
       </section>
 

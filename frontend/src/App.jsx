@@ -7,7 +7,7 @@ import LoadingOverlay from "./components/LoadingOverlay";
 import LandingPage from "./pages/LandingPage";
 import AnalyzerPage from "./pages/AnalyzerPage";
 import ResultsPage from "./pages/ResultsPage";
-import { analyzeResume, downloadResume } from "./services/api";
+import { analyzeResume } from "./services/api";
 
 const templates = [
   {
@@ -47,11 +47,12 @@ function App() {
   const [uploadError, setUploadError] = useState("");
   const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState(initialResult);
   const [optimizedResume, setOptimizedResume] = useState(null);
   const [serverUserId, setServerUserId] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState("professional");
+  const [downloadUrl, setDownloadUrl] = useState("");
+  const [downloadImageUrl, setDownloadImageUrl] = useState("");
   const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
@@ -111,60 +112,45 @@ function App() {
       const message = "Add both a job description and resume file before analyzing.";
       setApiError(message);
       pushToast("error", "Missing input", message);
+      alert("Something went wrong. Try again.");
       return;
     }
-
-    console.log(file);
-    console.log(jobDescription);
 
     setLoading(true);
     setApiError("");
 
     try {
       const response = await analyzeResume({ jobDescription, file });
-      console.log("Analyze data received:", response);
       const normalized = normalizeResult(response);
       setResult(normalized.analysis);
       setOptimizedResume(normalized.optimizedResume);
       setServerUserId(normalized.userId);
+      setDownloadUrl(normalized.downloadUrl);
+      setDownloadImageUrl(normalized.downloadImageUrl);
       pushToast("success", "Analysis complete", "Resume analyzed successfully.");
       setActiveView("results");
-    } catch (error) {
-      const message = error?.response?.data?.error || error.message || "Failed to analyze resume.";
-      console.error("Analyze failed:", error?.response?.data || error.message);
+
+      if (normalized.downloadUrl) {
+        handleDownload(normalized.downloadUrl);
+      }
+    } catch (err) {
+      console.error(err);
+      const message = err?.response?.data?.error || err.message || "Failed to analyze resume.";
       setApiError(message);
       pushToast("error", "API unavailable", message);
+      alert("Something went wrong. Try again.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleDownload(format) {
-    if (!optimizedResume) {
-      pushToast("error", "No export payload", "Run an analysis first so the server can generate resume files from the optimized data.");
+  function handleDownload(url) {
+    if (!url) {
+      alert("Download unavailable");
       return;
     }
 
-    setDownloading(true);
-
-    try {
-      const payload = {
-        template: selectedTemplate,
-        optimizedResume,
-        userId: serverUserId,
-        result,
-        jobDescription
-      };
-      const blob = await downloadResume(format, payload);
-      triggerDownload(blob, `resume-${selectedTemplate}.${format === "image" ? "jpg" : "pdf"}`);
-      pushToast("success", "Download ready", `Your ${format.toUpperCase()} export has started.`);
-    } catch (error) {
-      const message = error?.response?.data?.error || "Download endpoint unavailable.";
-      console.error("Download failed:", error?.response?.data || error.message);
-      pushToast("error", "Download failed", message);
-    } finally {
-      setDownloading(false);
-    }
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   let page = <LandingPage onTryNow={() => setActiveView("analyzer")} />;
@@ -194,49 +180,42 @@ function App() {
         templates={templates}
         selectedTemplate={selectedTemplate}
         onSelectTemplate={setSelectedTemplate}
-        onDownload={handleDownload}
-        downloading={downloading}
+        onDownload={(format) => handleDownload(format === "image" ? downloadImageUrl : downloadUrl)}
+        downloadAvailable={Boolean(downloadUrl || downloadImageUrl)}
       />
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar
-        theme={theme}
-        onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-        onNavigate={setActiveView}
-        activeView={activeView}
-      />
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      <LoadingOverlay visible={loading} />
+    <div className="min-h-screen bg-gray-900 px-4 text-white">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col">
+        <Navbar
+          theme={theme}
+          onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+          onNavigate={setActiveView}
+          activeView={activeView}
+        />
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <LoadingOverlay visible={loading} />
 
-      <main>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeView}
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -18 }}
-            transition={{ duration: 0.4 }}
-          >
-            {page}
-          </motion.div>
-        </AnimatePresence>
-      </main>
+        <main className="flex-1">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeView}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.4 }}
+            >
+              {page}
+            </motion.div>
+          </AnimatePresence>
+        </main>
 
-      <Footer />
+        <Footer />
+      </div>
     </div>
   );
-}
-
-function triggerDownload(blob, fileName) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 function normalizeResult(response = {}) {
@@ -251,7 +230,9 @@ function normalizeResult(response = {}) {
       improved_summary: data.improved_summary || ""
     },
     optimizedResume: data.optimized_resume || null,
-    userId: data?.metadata?.user_id || null
+    userId: data?.metadata?.user_id || null,
+    downloadUrl: response?.downloadUrl || data?.downloadUrl || "",
+    downloadImageUrl: response?.downloadImageUrl || data?.downloadImageUrl || ""
   };
 }
 
