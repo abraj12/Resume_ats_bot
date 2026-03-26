@@ -1,30 +1,38 @@
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
-  timeout: 30000
-});
+const API_URL = import.meta.env.VITE_API_URL || "https://resume-ats-bot.onrender.com";
 
 export async function analyzeResume({ jobDescription, file }) {
   const formData = new FormData();
   formData.append("jobDescription", jobDescription);
   formData.append("file", file);
 
-  const res = await api.post("/analyze", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data"
-    }
-  });
+  try {
+    const res = await axios.post(`${API_URL}/analyze`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    });
 
-  return res.data;
+    console.log("SUCCESS:", res.data);
+    return res.data;
+  } catch (err) {
+    console.error("API ERROR:", err.response?.data || err.message);
+    throw err;
+  }
 }
 
 export async function downloadResume(format, payload) {
-  const response = await api.post(`/download/${format}`, payload, {
-    responseType: "blob"
-  });
+  try {
+    const response = await axios.post(`${API_URL}/download/${format}`, payload, {
+      responseType: "blob"
+    });
 
-  return response.data;
+    return response.data;
+  } catch (err) {
+    console.error("Download API error:", err.response?.data || err.message);
+    throw err;
+  }
 }
 
-export default api;
+export { API_URL };
