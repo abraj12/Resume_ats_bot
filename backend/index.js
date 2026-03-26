@@ -32,3 +32,4 @@ bootstrap().catch((error) => {
   logger.error("Unable to start application.", error);
   process.exit(1);
 });
+

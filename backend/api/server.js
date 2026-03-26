@@ -11,7 +11,6 @@ const {
   persistJobDescription,
   persistOptimizedResume
 } = require("../services/storageService");
-const { FRONTEND_URL } = require("../utils/env");
 const logger = require("../utils/logger");
 
 const upload = multer({
@@ -23,18 +22,12 @@ const upload = multer({
 
 function createApiServer() {
   const app = express();
-  const allowedOrigins = FRONTEND_URL.split(",").map((origin) => origin.trim()).filter(Boolean);
 
   app.use(
     cors({
-      origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-          return;
-        }
-
-        callback(new Error(`Origin not allowed by CORS: ${origin}`));
-      }
+      origin: "*",
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      allowedHeaders: ["Content-Type"]
     })
   );
   app.use(express.json({ limit: "2mb" }));
@@ -112,7 +105,7 @@ function createApiServer() {
 
     logger.info("POST /download request received", { format, templateId, userId });
 
-    if (!["pdf", "image"].includes(format)) {
+    if (![["pdf", "image"]].flat().includes(format)) {
       return res.status(400).json({ error: "Unsupported download format." });
     }
 
@@ -146,11 +139,6 @@ function createApiServer() {
     if (error instanceof multer.MulterError) {
       logger.error("Upload middleware failed", error);
       return res.status(400).json({ error: error.message });
-    }
-
-    if (error?.message?.startsWith("Origin not allowed by CORS")) {
-      logger.error("CORS rejected request", error);
-      return res.status(403).json({ error: error.message });
     }
 
     logger.error("Unhandled API error", error);
