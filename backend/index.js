@@ -14,7 +14,12 @@ async function bootstrap() {
   });
 
   const bot = createBot();
-  await bot.launch();
+  if (process.env.ENABLE_BOT === "true") {
+  bot.launch();
+  console.log("🤖 Bot started");
+} else {
+  console.log("🚫 Bot disabled");
+}
   logger.info("Telegram bot started successfully.");
 
   const shutdown = async (signal) => {
