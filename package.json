@@ -1,0 +1,14 @@
+{
+  "name": "resume-analyzer-monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "backend": "npm --prefix backend run dev",
+    "frontend": "npm --prefix frontend run dev",
+    "backend:start": "npm --prefix backend start",
+    "frontend:build": "npm --prefix frontend run build"
+  }
+}

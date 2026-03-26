@@ -1,0 +1,27 @@
+{
+  "name": "resume-analyzer-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend API and Telegram bot for AI resume analysis.",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "check": "node -e \"require('./utils/env').validateEnv(); console.log('Environment looks good.')\""
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "mammoth": "^1.8.0",
+    "multer": "^2.1.1",
+    "openai": "^4.76.0",
+    "pdf-parse": "^1.1.1",
+    "puppeteer": "^24.1.1",
+    "telegraf": "^4.16.3"
+  }
+}
